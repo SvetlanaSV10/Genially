@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Connect 4 — Green vs Purple</title>
+<style>
+  /* Сброс и базовая настройка */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at top, #1e1e2f, #0a0a15);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+  }
+  #container {
+    width: 90vw;
+    height: calc(90vw / (16 / 9));
+    max-width: 1280px;
+    max-height: 720px;
+    background: #22253b;
+    border-radius: 16px;
+    box-shadow: 0 0 40px #5c00ffaa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5vw;
+  }
+  h1 {
+    margin: 0 0 0.5em 0;
+    font-size: clamp(1.5rem, 2.5vw, 2.5rem);
+    text-shadow: 0 0 10px #a8a8ff;
+    user-select: none;
+  }
+  #board {
+    flex-grow: 1;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 0.5vw;
+    background: url('https://i.imgur.com/GAKU1yV.png') center/cover no-repeat;
+    border-radius: 1vw;
+    padding: 0.5vw;
+    box-shadow: inset 0 0 15px #0009;
+  }
+  .cell {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease;
+  }
+  .cell:hover {
+    background-color: rgba(255,255,255,0.15);
+  }
+  .circle {
+    width: 70%;
+    height: 70%;
+    border-radius: 50%;
+    background-color: white;
+    box-shadow: inset 0 0 6px #0008;
+    transition: transform 0.2s ease;
+  }
+  .green {
+    background: radial-gradient(circle at center, #00ff99, #009966);
+    box-shadow:
+      0 0 10px #00ffcc,
+      inset 0 0 10px #00cc99;
+    animation: pulse 2s infinite ease-in-out;
+  }
+  .purple {
+    background: radial-gradient(circle at center, #cc66ff, #6633cc);
+    box-shadow:
+      0 0 10px #cc66ff,
+      inset 0 0 10px #9933cc;
+    animation: pulse 2s infinite ease-in-out;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  #message {
+    margin: 1em 0 0 0;
+    font-size: clamp(1rem, 1.8vw, 1.5rem);
+    text-shadow: 0 0 8px #7777ffaa;
+    user-select: none;
+  }
+  button {
+    margin: 1em 0 0 0;
+    padding: 0.6em 1.8em;
+    font-size: clamp(1rem, 1.6vw, 1.3rem);
+    background: linear-gradient(45deg, #8e2de2, #4a00e0);
+    border: none;
+    border-radius: 0.7em;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 0 10px #6b00ccaa;
+    transition: background 0.3s ease;
+    user-select: none;
+  }
+  button:hover {
+    background: linear-gradient(45deg, #9e3df2, #5a10f0);
+  }
+  #winModal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    user-select: none;
+  }
+  #winModal img {
+    width: clamp(80px, 10vw, 120px);
+    animation: bounce 1.5s infinite ease-in-out;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 6px #f0aaff);
+  }
+  #winModal h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    background: linear-gradient(90deg, #00ffcc, #ff00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glow 2.5s infinite ease-in-out;
+    margin: 0;
+    text-align: center;
+    user-select: none;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes glow {
+    0%, 100% { text-shadow: 0 0 5px white; }
+    50% { text-shadow: 0 0 25px #ff00ff, 0 0 40px #00ffcc; }
+  }
+</style>
+</head>
+<body>
+  <div id="container" role="main" aria-label="Connect 4 game">
+    <h1>Connect 4 — Green vs Purple</h1>
+    <div id="board" aria-label="Игровая доска"></div>
+    <div id="message" aria-live="polite">Green's Turn</div>
+    <button type="button" onclick="resetGame()">Restart</button>
+  </div>
+
+  <div id="winModal" role="dialog" aria-modal="true" aria-labelledby="winnerText" tabindex="-1">
+    <img src="https://cdn-icons-png.flaticon.com/512/3159/3159066.png" alt="Victory Trophy" />
+    <h2 id="winnerText">Green Wins!</h2>
+  </div>
+
+  <script>
+    const ROWS = 6;
+    const COLS = 7;
+    const board = [];
+    let currentPlayer = 'green';
+    const boardEl = document.getElementById('board');
+    const messageEl = document.getElementById('message');
+    const modal = document.getElementById('winModal');
+    const winnerText = document.getElementById('winnerText');
+
+    function createBoard() {
+      boardEl.innerHTML = '';
+      for (let row = 0; row < ROWS; row++) {
+        board[row] = [];
+        for (let col = 0; col < COLS; col++) {
+          const cell = document.createElement('div');
+          cell.classList.add('cell');
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+
+          const circle = document.createElement('div');
+          circle.classList.add('circle');
+          cell.appendChild(circle);
+
+          cell.addEventListener('click', () => placeDisc(col));
+          boardEl.appendChild(cell);
+          board[row][col] = null;
+        }
+      }
+    }
+
+    function placeDisc(col) {
+      for (let row = ROWS - 1; row >= 0; row--) {
+        if (!board[row][col]) {
+          board[row][col] = currentPlayer;
+          const circle = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"] .circle`);
+          circle.classList.add(currentPlayer);
+
+          if (checkWin(row, col)) {
+            setTimeout(() => showWin(currentPlayer), 150);
+            return;
+          }
+          currentPlayer = currentPlayer === 'green' ? 'purple' : 'green';
+          messageEl.textContent = `${capitalize(currentPlayer)}'s Turn`;
+          return;
+        }
+      }
+    }
+
+    function checkWin(r, c) {
+      return checkDirection(r, c, 1, 0) ||
+             checkDirection(r, c, 0, 1) ||
+             checkDirection(r, c, 1, 1) ||
+             checkDirection(r, c, 1, -1);
+    }
+
+    function checkDirection(r, c, dr, dc) {
+      let count = 1;
+      for (let i = 1; i < 4; i++) {
+        if (board[r + dr*i]?.[c + dc*i] === currentPlayer) count++;
+        else break;
+      }
+      for (let i = 1; i < 4; i++) {
+        if (board[r - dr*i]?.[c - dc*i] === currentPlayer) count++;
+        else break;
+      }
+      return count >= 4;
+    }
+
+    function showWin(player) {
+      winnerText.textContent = `${capitalize(player)} Wins!`;
+      modal.style.display = 'flex';
+      modal.focus();
+    }
+
+    function resetGame() {
+      currentPlayer = 'green';
+      messageEl.textContent = `Green's Turn`;
+      modal.style.display = 'none';
+      createBoard();
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    createBoard();
+  </script>
+</body>
+</html>
